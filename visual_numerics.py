@@ -4,19 +4,21 @@ import tkinter.filedialog as fd
 import tkinter.colorchooser as cc
 from tkinter.constants import *
 import tkinter.scrolledtext as st
-from ns import *
 import os
+from Source.builder import NumScriptVirtualMachine
 
 class FileTreeView:
     def __init__(self, parent):
         self.parent = parent
         self.treeObject = ttk.Treeview(self.parent.content, show="tree")
         tree = self.treeObject
+
+        tree.bind("<<TreeviewOpen>>", self.listDir)
+        tree.bind("<<TreeviewClose>>", self.cleanDir)
+        tree.bind("<<TreeviewSelect>>", self.parent.code.tabClick)
+
         if self.parent.directory:
             self.listDir()
-            tree.bind("<<TreeviewOpen>>", self.listDir)
-            tree.bind("<<TreeviewClose>>", self.cleanDir)
-            tree.bind("<<TreeviewSelect>>", self.parent.code.tabClick)
     
     def listDir(self, event=None):
         tree = self.treeObject
@@ -156,15 +158,15 @@ class ConsoleView:
         """
         output = self.consoleObject
         output['height'] += 1
-        
-        global tokenized_line, tokenized_code
         data = self.entry.get()[4:]
+        self.out(data)
+        """
+        global tokenized_line, tokenized_code
         if data.isnumeric():
             if data: tokenized_line=tokenizer(data.replace(" ",""))
             if tokenized_line == ["00"] or data == "": exe(self.out)
             elif tokenized_line != "-99": tokenized_code.append(tokenized_line)
-        self.out(tokenized_line, tokenized_code)
-        self.out(data)
+        self.out(tokenized_line, tokenized_code)"""
 
 class WindowMenu:
     def __init__(self, parent):
@@ -237,6 +239,8 @@ class WindowMenu:
 
 class MainWindow:
     def __init__(self, directory=None, title="VISUAL_NUMERICS.PY", width=800, height=600):
+        self.nsvm = NumScriptVirtualMachine()
+
         self.root = tk.Tk()
         self.directory = directory
         self.width = width
