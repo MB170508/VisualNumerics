@@ -5,6 +5,7 @@ import tkinter.colorchooser as cc
 from tkinter.constants import *
 import tkinter.scrolledtext as st
 import os
+import configparser as cp
 from Source.builder import NumScriptVirtualMachine
 
 class FileTreeView:
@@ -92,8 +93,8 @@ class CodeView:
                 self.codeObject.select(topTabIndex)
             # Close tab
             elif self.currentTabName == "x":
-                if len(self.tabNames) > 3:
-                    self.tabs[self.tabNames[self.codeObject.index("current")-1]].destroy()
+                if len(self.tabNames) > 3: # Only allow user to close tab if there is a total number of tabs larger than 3 (one tab with data + "x" and "+")
+                    self.tabs[self.tabNames[self.codeObject.index("current")-1]].destroy() 
                     self.tabs.pop(self.tabNames[self.codeObject.index("current")-1])
                     self.codeObject.forget(self.codeObject.tabs()[self.codeObject.index("current")-1])
                     if self.codeObject.index("current") != 0: self.codeObject.select(self.codeObject.index("current")-1)
@@ -219,6 +220,7 @@ class WindowMenu:
         
         self.viewMenu = tk.Menu(self.menuObject, tearoff=0)
         self.viewMenu.add_command(label="Hide Console", command=self.toggleConsole)
+        self.viewMenu.add_command(label="Open Preferences", command=self.openPreferences)
         
         self.menuObject.add_cascade(label="File", menu=self.fileMenu)
         self.menuObject.add_cascade(label="Edit", menu=self.editMenu)
@@ -258,10 +260,55 @@ class WindowMenu:
     def toggleConsole(self):
         if len(self.parent.rightPane.panes()) > 1:
             self.parent.rightPane.remove(self.parent.console.frame)
-            self.viewMenu.entryconfig(1, label="Show Console")
+            self.viewMenu.entryconfig(0, label="Show Console")
         else:
             self.parent.rightPane.add(self.parent.console.frame)
-            self.viewMenu.entryconfig(1, label="Hide Console")
+            self.viewMenu.entryconfig(0, label="Hide Console")
+
+    def openPreferences(self):
+        """
+        Open the preferences window.
+        """
+        PreferenceWindow(self.parent)
+    
+
+class PreferenceWindow:
+    def __init__(self, parent):
+        self.parent = parent
+        self.toplevel = tk.Toplevel(parent.root)
+        toplevel = self.toplevel
+        toplevel.attributes("-topmost", "true")
+
+        self.colors = {"wbg":"red", "wfg":"green", "tbg":None, "tfg":None}
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+        self.style.configure("WBG.TButton", background=self.colors["wbg"])
+        self.style.map("WBG.TButton", background=[(ACTIVE, self.colors["wbg"])])
+        self.style.configure("WFG.TButton", background=self.colors["wfg"])
+        self.style.map("WFG.TButton", background=[(ACTIVE, self.colors["wfg"])])
+
+        wbgl = tk.Label(toplevel, text="Window Background Color")
+        wfgl = tk.Label(toplevel, text="Window Foreground Color")
+        wbgc = ttk.Button(toplevel, style="WBG.TButton", command=lambda: self.color("wbg"))
+        wfgc = ttk.Button(toplevel, style="WFG.TButton", command=lambda: self.color("wfg"))
+        wbgl.grid(row=0, column=0)
+        wfgl.grid(row=1, column=0)
+        wbgc.grid(row=0, column=1)
+        wfgc.grid(row=1, column=1)
+
+        sep = ttk.Separator(toplevel)
+        sep.grid(row=2, column=0, columnspan=2)
+
+        tbgl = tk.Label(toplevel, text="Text Background Color")
+        tfgl = tk.Label(toplevel, text="Text Foreground Color")
+        tbgl.grid(row=3, column=0)
+        tfgl.grid(row=4, column=0)
+
+    def color(self, e):
+        self.colors[e] = cc.askcolor(initialcolor=self.colors[e], parent=self.toplevel)[1] # 1 for hex output, 0 for (r, g, b)
+        self.style.configure(e.upper()+".TButton", background=self.colors[e])
+        self.style.map(e.upper()+".TButton", background=[(ACTIVE, self.colors[e])])
+        self.toplevel.update_idletasks()
 
 class MainWindow:
     def __init__(self, directory=None, title="VISUAL_NUMERICS.PY", width=800, height=600):
@@ -299,7 +346,7 @@ class MainWindow:
         self.root.config(menu=self.menu.menuObject)
         self.root.bind("<Control-o>", self.changeDir)                   
 
-        self.changeDir()
+        #self.changeDir()
         
         """self.console.out("\n",
         "  _   _                 ____            _       _   \n",
@@ -328,25 +375,9 @@ class MainWindow:
         self.directory = directory if directory != "" else self.directory
         self.tree.treeObject.delete(*self.tree.treeObject.get_children())
         self.tree.listDir()
-    
-    def openPreferences(self):
-        """
-        Open the preferences window.
-        """
-        pass
-    
-    def toggleConsole(self):
-        """
-        Hide or show the console.
-        """
-        if self.rightPane.index("end") == 1:
-            self.rightPane.forget(self.console.consoleObject)
-        else:
-            self.rightPane.add(self.console.consoleObject)
-        self.rightPane.update_idletasks()
 
 
-MainWindow()
+MainWindow("/Users/benzo/Documents/VisualNumerics/")
 
 """
 if len(sys.argv) > 1: #File input from system arguments
