@@ -22,7 +22,7 @@ class FileTreeView:
         tree = self.treeObject
 
         tree.bind("<<TreeviewOpen>>", self.listDir) # Crawl new directory exclusively when opened to list files inside
-        tree.bind("<<TreeviewClose>>", self.cleanDir)
+        tree.bind("<<TreeviewClose>>", self.cleanDir) # Delete all children of parent directory inside Treeview, leaves placeholder
         tree.bind("<<TreeviewSelect>>", self.parent.code.tabClick) # Hand over to CodeView for opening files in new tab
 
         if self.parent.directory:
@@ -33,7 +33,7 @@ class FileTreeView:
         if event: # If called via <<TreeviewOpen>> event binding
             parent = " ".join(tree.item(tree.focus(), "tags")) # The directory, for which items should be listed
             tree.delete(tree.get_children(parent)[0]) # Delete placeholder item
-        else: # If called otherwise, like 
+        else: # If called otherwise, like during MainWindow init
             parent = ""
         for i in os.listdir(os.path.join(self.parent.directory, parent[1:])):
             if os.path.isdir(os.path.join(self.parent.directory, parent[1:], i)):
@@ -65,9 +65,7 @@ class CodeView:
         self.untitledIndex = 0
         self.closeTab = tk.Frame(self.codeObject)
         self.tabs = {
-            "Untitled-" + str(self.untitledIndex): st.ScrolledText(
-                self.codeObject, wrap="none", undo=True
-            )
+            "Untitled-" + str(self.untitledIndex): st.ScrolledText(self.codeObject, wrap="none", undo=True)
         }
         self.tabs[f"Untitled-{self.untitledIndex}"].bind(
             "<Key>", lambda e: self.currentTab.edit_modified(True)
@@ -100,53 +98,44 @@ class CodeView:
             # Open new Untitled tab
             if self.codeObject.index("current") == topTabIndex:
                 self.untitledIndex = self.getUntitIndex()
-                self.tabs.update(
-                    {
-                        "Untitled-" + str(self.untitledIndex): st.ScrolledText(
-                            self.codeObject, wrap="none", undo=True
-                        )
-                    }
-                )
+                self.tabs.update({
+                    "Untitled-" + str(self.untitledIndex): st.ScrolledText(self.codeObject, wrap="none", undo=True)
+                })
                 self.codeObject.insert(
                     topTabIndex,
                     list(self.tabs.values())[-1],
                     text=f"Untitled-{self.untitledIndex}",
                 )
                 self.codeObject.select(topTabIndex)
+
             # Close tab
             elif self.currentTabName == "x":
-                if (
-                    len(self.tabNames) > 3
-                ):  # Only allow user to close tab if there is a total number of tabs larger than 3 (one tab with data + "x" and "+")
-                    self.tabs[
-                        self.tabNames[self.codeObject.index("current") - 1]
-                    ].destroy()
+                if len(self.tabNames) > 3:  # Only allow user to close tab if there is a total number of tabs larger than 3 (one tab with data + "x" and "+")
+                    self.tabs[self.tabNames[self.codeObject.index("current") - 1]].destroy()
                     self.tabs.pop(self.tabNames[self.codeObject.index("current") - 1])
-                    self.codeObject.forget(
-                        self.codeObject.tabs()[self.codeObject.index("current") - 1]
-                    )
+                    self.codeObject.forget(self.codeObject.tabs()[self.codeObject.index("current") - 1])
+
                     if self.codeObject.index("current") != 0:
                         self.codeObject.select(self.codeObject.index("current") - 1)
                     else:
                         self.codeObject.select(self.codeObject.index("current") + 1)
                 else:
                     self.codeObject.select(self.codeObject.index("current") - 1)
+
+            # Open selected file in opened tab (if tab exists)
             elif treeViewSelection in self.tabNames:
                 self.codeObject.select(self.tabNames.index(treeViewSelection))
                 self.parent.tree.treeObject.focus("")
                 self.parent.tree.treeObject.selection_clear()
-            # Open selected file in new tab
+
+            # Open selected file in new tab (if tab doesnt exist)
             elif treeViewSelection not in self.tabNames:
                 fileName = treeViewSelection
                 if os.path.isfile(f"{self.parent.directory}/{fileName}"):
                     with open(f"{self.parent.directory}/{fileName}") as file:
-                        self.tabs.update(
-                            {
-                                fileName: st.ScrolledText(
-                                    self.codeObject, wrap="none", undo=True
-                                )
-                            }
-                        )
+                        self.tabs.update({
+                            fileName: st.ScrolledText(self.codeObject, wrap="none", undo=True)
+                        })
                         self.codeObject.insert(
                             topTabIndex,
                             list(self.tabs.values())[-1],
@@ -196,9 +185,7 @@ class ConsoleView:
             validatecommand=(self.frame.register(lambda t: t.startswith(">>> ")), "%P"),
         )
 
-        self.consoleObject = st.ScrolledText(
-            self.frame, height=10, borderwidth=0, state="disabled"
-        )
+        self.consoleObject = st.ScrolledText(self.frame, height=10, borderwidth=0, state="disabled")
         self.consoleObject.pack(side=tk.BOTTOM, fill=tk.X)
 
     def out(self, *s, sep=" ", end="\n") -> str:
@@ -268,9 +255,7 @@ class WindowMenu:
 
         self.viewMenu = tk.Menu(self.menuObject, tearoff=0)
         self.viewMenu.add_command(label="Hide Console", command=self.toggleConsole)
-        self.viewMenu.add_command(
-            label="Open Preferences", command=self.openPreferences
-        )
+        self.viewMenu.add_command(label="Open Preferences", command=self.openPreferences)
 
         self.menuObject.add_cascade(label="File", menu=self.fileMenu)
         self.menuObject.add_cascade(label="Edit", menu=self.editMenu)
@@ -347,10 +332,14 @@ class Preferences:
         else:
             self.colors = {"wbg": "red", "wfg": "green", "tbg": "blue", "tfg": "yellow"}
             for element in self.colors.keys():
-                self.style.configure(element.upper()+".TButton", background=self.colors[element])
-                self.style.map(element.upper()+".TButton", background=[(ACTIVE, self.colors[element])])
+                self.style.configure(
+                    element.upper()+".TButton", background=self.colors[element]
+                )
+                self.style.map(
+                    element.upper()+".TButton", background=[(ACTIVE, self.colors[element])]
+                )
         
-    def windowDraw(self):
+    def windowDraw(self, e=None):
         self.toplevel = tk.Toplevel(self.parent.root)
         toplevel = self.toplevel
         toplevel.attributes("-topmost", "true")
@@ -383,11 +372,12 @@ class Preferences:
         cancel.grid(row=6,column=1)
 
     def color(self, e):
-        self.colors[e] = cc.askcolor(initialcolor=self.colors[e], parent=self.toplevel)[1]  # 1 for hex output, 0 for (r, g, b)
-        self.style.configure(e.upper() + ".TButton", background=self.colors[e])
-        self.style.map(e.upper() + ".TButton", background=[(ACTIVE, self.colors[e])])
-        self.toplevel.update_idletasks()
-        print(self.colors)
+        try:
+            self.colors[e] = cc.askcolor(initialcolor=self.colors[e], parent=self.toplevel)[1]  # 1 for hex output, 0 for (r, g, b)
+            self.style.configure(e.upper() + ".TButton", background=self.colors[e])
+            self.style.map(e.upper() + ".TButton", background=[(ACTIVE, self.colors[e])])
+        except TypeError:
+            pass
 
     def save(self):
         self.config["DEFAULT"] = self.colors
@@ -401,8 +391,12 @@ class Preferences:
         self.config.read("config.ini")
         self.colors = self.config["DEFAULT"]
         for element in self.colors.keys():
-            self.style.configure(element.upper()+".TButton", background=self.colors[element])
-            self.style.map(element.upper()+".TButton", background=[(ACTIVE, self.colors[element])])
+            self.style.configure(
+                element.upper()+".TButton", background=self.colors[element]
+            )
+            self.style.map(
+                element.upper()+".TButton", background=[(ACTIVE, self.colors[element])]
+            )
 
 class MainWindow:
     def __init__(
@@ -450,6 +444,7 @@ class MainWindow:
         self.menu = WindowMenu(self)
         self.root.config(menu=self.menu.menuObject)
         self.root.bind("<Control-o>", self.changeDir)
+        self.root.bind("<Control-p>", self.preferences.windowDraw)
 
         # self.changeDir()
 
