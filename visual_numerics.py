@@ -9,23 +9,28 @@ from Source.builder import NumScriptVirtualMachine
 
 class FileTreeView:
     def __init__(self, parent):
+        """Initializes FileTreeView window component, that handles file and data management
+
+        Args:
+            parent (MainWindow): Passes the MainWindow parent
+        """
         self.parent = parent
         self.treeObject = ttk.Treeview(self.parent.content, show="tree")
         tree = self.treeObject
 
-        tree.bind("<<TreeviewOpen>>", self.listDir)
+        tree.bind("<<TreeviewOpen>>", self.listDir) # Crawl new directory exclusively when opened to list files inside
         tree.bind("<<TreeviewClose>>", self.cleanDir)
-        tree.bind("<<TreeviewSelect>>", self.parent.code.tabClick)
+        tree.bind("<<TreeviewSelect>>", self.parent.code.tabClick) # Hand over to CodeView for opening files in new tab
 
         if self.parent.directory:
             self.listDir()
     
-    def listDir(self, event=None):
+    def listDir(self, event=None):   
         tree = self.treeObject
-        if event:
-            parent = " ".join(tree.item(tree.focus(), "tags"))
-            tree.delete(tree.get_children(parent)[0])
-        else:
+        if event: # If called via <<TreeviewOpen>> event binding
+            parent = " ".join(tree.item(tree.focus(), "tags")) # The directory, for which items should be listed
+            tree.delete(tree.get_children(parent)[0]) # Delete placeholder item
+        else: # If called otherwise, like 
             parent = ""
         for i in os.listdir(os.path.join(self.parent.directory, parent[1:])):
             if os.path.isdir(os.path.join(self.parent.directory, parent[1:], i)):
@@ -46,6 +51,11 @@ class FileTreeView:
 
 class CodeView:
     def __init__(self, parent):
+        """Initializes CodeView window component, that handles everything to do with text input and tab management
+
+        Args:
+            parent (MainWindow): Passes the MainWindow parent
+        """
         self.parent = parent
         self.codeObject = ttk.Notebook(self.parent.rightPane)
         code = self.codeObject
@@ -72,6 +82,7 @@ class CodeView:
         self.currentTabName = self.codeObject.tab(self.currentTabIndex, "text")
         self.currentTab = self.tabs[self.currentTabName] if self.currentTabName in self.tabs else None
         self.tabNames = [self.codeObject.tab(tab, "text") for tab in self.codeObject.tabs()]
+        treeViewSelection = self.parent.tree.treeObject.focus()[1:]
         if event:
             # Open new Untitled tab
             if self.codeObject.index("current") == topTabIndex:
@@ -88,16 +99,21 @@ class CodeView:
                     if self.codeObject.index("current") != 0: self.codeObject.select(self.codeObject.index("current")-1)
                     else: self.codeObject.select(self.codeObject.index("current")+1)
                 else: self.codeObject.select(self.codeObject.index("current")-1)
+            elif treeViewSelection in self.tabNames:
+                self.codeObject.select(self.tabNames.index(treeViewSelection))
+                self.parent.tree.treeObject.focus("")
+                self.parent.tree.treeObject.selection_clear()
             # Open selected file in new tab
-            elif self.parent.tree.treeObject.focus()[1:] not in self.tabNames:
-                fileName = self.parent.tree.treeObject.focus()[1:]
+            elif treeViewSelection not in self.tabNames:
+                fileName = treeViewSelection
                 if os.path.isfile(f"{self.parent.directory}/{fileName}"):
                     with open(f"{self.parent.directory}/{fileName}") as file:
                         self.tabs.update({fileName: st.ScrolledText(self.codeObject, wrap="none", undo=True)})
-                        self.codeObject.insert(topTabIndex, list(self.tabs.values())[-1], text=self.parent.tree.treeObject.focus()[1:])
+                        self.codeObject.insert(topTabIndex, list(self.tabs.values())[-1], text=treeViewSelection)
                         self.tabs[fileName].insert("1.0", chars=file.read())
                         self.codeObject.select(topTabIndex)
                 self.parent.tree.treeObject.focus("")
+                self.parent.tree.treeObject.selection_clear()
             self.codeObject.insert("end", self.closeTab)
             self.codeObject.insert(self.codeObject.index("current")+1, self.closeTab)
         self.parent.runButton.lift()
@@ -115,6 +131,11 @@ class CodeView:
 
 class ConsoleView:
     def __init__(self, parent):
+        """Initializes ConsoleView window component, that handles the console output and entry bar
+
+        Args:
+            parent (MainWindow): Passes the MainWindow parent
+        """        
         self.parent = parent
         self.frame = tk.Frame(self.parent.rightPane)
         """self.consoleObject = st.ScrolledText(self.frame, wrap="none", height=10)
@@ -170,6 +191,11 @@ class ConsoleView:
 
 class WindowMenu:
     def __init__(self, parent):
+        """Initializes WindowMenu window component that that handles all menu and preferences actions
+
+        Args:
+            parent (MainWindow): Passes the MainWindow parent
+        """
         self.parent = parent
         self.menuObject = tk.Menu(self.parent.root)
         
@@ -272,6 +298,8 @@ class MainWindow:
         self.menu = WindowMenu(self)
         self.root.config(menu=self.menu.menuObject)
         self.root.bind("<Control-o>", self.changeDir)                   
+
+        self.changeDir()
         
         """self.console.out("\n",
         "  _   _                 ____            _       _   \n",
