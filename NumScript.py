@@ -1,10 +1,14 @@
 # --- NumScript ---
 
-if __name__ == "__main__":  
-    
-    # --- Importing NumScript Virtual Machine from Source ---
-    from Source.builder import NumScriptVirtualMachine
+# --- Importing NumScript Virtual Machine from source ---
+from source.builder import NumScriptVirtualMachine
 
-    # --- Launching the NumScript shell ---                
-    engine = NumScriptVirtualMachine()
+# --- Launching the NSVM shell ---
+engine = NumScriptVirtualMachine()
+
+# --- Launching the NumScript shell ---
+try:
     engine.cli()
+
+except:
+    exit()

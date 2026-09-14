@@ -1,0 +1,26 @@
+{
+    "states":{
+        "debug":false,
+        "splitter":false,
+        "printTokens":false,
+        "printMemory":false
+    },
+    
+    "symbols":{
+        "shellIn":"$ ",
+        "shellOut":"> ",
+        "input":"< "
+    },
+
+    "paths":{
+      "codePath": "",
+      "definitionsPath": "",
+      "filesPath": "",
+      "stacksPath": "",
+      "variablesPath": ""
+    },
+
+    "shellOutput": true,
+
+    "init": true
+}

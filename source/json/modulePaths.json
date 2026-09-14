@@ -1,0 +1,29 @@
+{
+    "cli.asciiArt": "asciiArt",
+    "cli.cli":"cli",
+            
+    "tokenizer.tokenizer":"tokenizer",
+    "tokenizer.tokenize":"tokenize",
+      
+    "operandAssembler.modules.stackByNumberCheck":"stackByNumberCheck",
+    "operandAssembler.modules.stackByVariableCheck":"stackByVariableCheck",
+    "operandAssembler.modules.variableByNumberCheck":"variableByNumberCheck",
+    "operandAssembler.modules.variableByVariableCheck":"variableByVariableCheck",
+    "operandAssembler.modules.indexByNumberCheck":"indexByNumberCheck",
+    "operandAssembler.modules.indexByVariableCheck":"indexByVariableCheck",
+    "operandAssembler.operandAssemblerUtility":"operandAssemblerUtility",
+    "operandAssembler.operandAssembler":"operandAssembler",
+
+    "interpreter.interpreter":"interpreter",
+
+    "exe.lineRunner":"lineRunner",
+    "exe.run":"run",
+    "exe.compiler":"compiler",
+    "exe.container":"container",
+             
+    "support.mostCommon":"mostCommon",
+    "support.rounder":"rounder",
+    "support.tokenCorrector":"tokenCorrector",
+    "support.onlyNumbers": "onlyNumbers",
+    "support.handleOutput": "handleOutput"
+}
