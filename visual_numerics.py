@@ -1,12 +1,14 @@
+import configparser as cp
+import os
 import tkinter as tk
-import tkinter.ttk as ttk
-import tkinter.filedialog as fd
 import tkinter.colorchooser as cc
 from tkinter.constants import *
+import tkinter.filedialog as fd
 import tkinter.scrolledtext as st
-import os
-import configparser as cp
-from Source.builder import NumScriptVirtualMachine
+from tkinter import ttk
+
+# from Source.builder import NumScriptVirtualMachine
+
 
 class FileTreeView:
     def __init__(self, parent):
@@ -62,44 +64,73 @@ class CodeView:
         code = self.codeObject
         self.untitledIndex = 0
         self.closeTab = tk.Frame(self.codeObject)
-        self.tabs = {"Untitled-"+str(self.untitledIndex): st.ScrolledText(self.codeObject, wrap="none", undo=True)}
-        self.tabs[f"Untitled-{self.untitledIndex}"].bind("<Key>",lambda e: self.currentTab.edit_modified(True))
+        self.tabs = {
+            "Untitled-" + str(self.untitledIndex): st.ScrolledText(
+                self.codeObject, wrap="none", undo=True
+            )
+        }
+        self.tabs[f"Untitled-{self.untitledIndex}"].bind(
+            "<Key>", lambda e: self.currentTab.edit_modified(True)
+        )
         code.add(self.tabs["Untitled-0"], text=f"Untitled-{self.untitledIndex}")
-        
+
         self.buttonFrame = tk.Frame(self.codeObject, width=10, height=5)
-        
+
         code.add(self.closeTab, text="x")
         code.add(tk.Frame(self.codeObject), text="+")
         code.bind("<<NotebookTabChanged>>", self.tabClick)
 
     def tabClick(self, event=None):
         """Handles all tab onclick events - opening/closing tabs
-        
+
         Args:
             event (tkinter.Event, optional): Tkinter event that called the function. Defaults to None.
         """
-        topTabIndex = self.codeObject.index("end")-1
+        topTabIndex = self.codeObject.index("end") - 1
         self.currentTabIndex = self.codeObject.index("current")
         self.currentTabName = self.codeObject.tab(self.currentTabIndex, "text")
-        self.currentTab = self.tabs[self.currentTabName] if self.currentTabName in self.tabs else None
-        self.tabNames = [self.codeObject.tab(tab, "text") for tab in self.codeObject.tabs()]
+        self.currentTab = (
+            self.tabs[self.currentTabName] if self.currentTabName in self.tabs else None
+        )
+        self.tabNames = [
+            self.codeObject.tab(tab, "text") for tab in self.codeObject.tabs()
+        ]
         treeViewSelection = self.parent.tree.treeObject.focus()[1:]
         if event:
             # Open new Untitled tab
             if self.codeObject.index("current") == topTabIndex:
                 self.untitledIndex = self.getUntitIndex()
-                self.tabs.update({"Untitled-"+str(self.untitledIndex): st.ScrolledText(self.codeObject, wrap="none", undo=True)})
-                self.codeObject.insert(topTabIndex, list(self.tabs.values())[-1], text=f"Untitled-{self.untitledIndex}")
+                self.tabs.update(
+                    {
+                        "Untitled-" + str(self.untitledIndex): st.ScrolledText(
+                            self.codeObject, wrap="none", undo=True
+                        )
+                    }
+                )
+                self.codeObject.insert(
+                    topTabIndex,
+                    list(self.tabs.values())[-1],
+                    text=f"Untitled-{self.untitledIndex}",
+                )
                 self.codeObject.select(topTabIndex)
             # Close tab
             elif self.currentTabName == "x":
-                if len(self.tabNames) > 3: # Only allow user to close tab if there is a total number of tabs larger than 3 (one tab with data + "x" and "+")
-                    self.tabs[self.tabNames[self.codeObject.index("current")-1]].destroy() 
-                    self.tabs.pop(self.tabNames[self.codeObject.index("current")-1])
-                    self.codeObject.forget(self.codeObject.tabs()[self.codeObject.index("current")-1])
-                    if self.codeObject.index("current") != 0: self.codeObject.select(self.codeObject.index("current")-1)
-                    else: self.codeObject.select(self.codeObject.index("current")+1)
-                else: self.codeObject.select(self.codeObject.index("current")-1)
+                if (
+                    len(self.tabNames) > 3
+                ):  # Only allow user to close tab if there is a total number of tabs larger than 3 (one tab with data + "x" and "+")
+                    self.tabs[
+                        self.tabNames[self.codeObject.index("current") - 1]
+                    ].destroy()
+                    self.tabs.pop(self.tabNames[self.codeObject.index("current") - 1])
+                    self.codeObject.forget(
+                        self.codeObject.tabs()[self.codeObject.index("current") - 1]
+                    )
+                    if self.codeObject.index("current") != 0:
+                        self.codeObject.select(self.codeObject.index("current") - 1)
+                    else:
+                        self.codeObject.select(self.codeObject.index("current") + 1)
+                else:
+                    self.codeObject.select(self.codeObject.index("current") - 1)
             elif treeViewSelection in self.tabNames:
                 self.codeObject.select(self.tabNames.index(treeViewSelection))
                 self.parent.tree.treeObject.focus("")
@@ -109,26 +140,37 @@ class CodeView:
                 fileName = treeViewSelection
                 if os.path.isfile(f"{self.parent.directory}/{fileName}"):
                     with open(f"{self.parent.directory}/{fileName}") as file:
-                        self.tabs.update({fileName: st.ScrolledText(self.codeObject, wrap="none", undo=True)})
-                        self.codeObject.insert(topTabIndex, list(self.tabs.values())[-1], text=treeViewSelection)
+                        self.tabs.update(
+                            {
+                                fileName: st.ScrolledText(
+                                    self.codeObject, wrap="none", undo=True
+                                )
+                            }
+                        )
+                        self.codeObject.insert(
+                            topTabIndex,
+                            list(self.tabs.values())[-1],
+                            text=treeViewSelection,
+                        )
                         self.tabs[fileName].insert("1.0", chars=file.read())
                         self.codeObject.select(topTabIndex)
                 self.parent.tree.treeObject.focus("")
                 self.parent.tree.treeObject.selection_clear()
             self.codeObject.insert("end", self.closeTab)
-            self.codeObject.insert(self.codeObject.index("current")+1, self.closeTab)
-        self.parent.runButton.lift()
-        
+            self.codeObject.insert(self.codeObject.index("current") + 1, self.closeTab)
+        #self.parent.runButton.lift()
+
     def getUntitIndex(self) -> int:
         """Returns the lowest unused integer for naming untitled tabs
-        
+
         Returns:
             int: Lowest unused integer
         """
-        for i in range(len(self.tabNames)-1):
+        for i in range(len(self.tabNames) - 1):
             if f"Untitled-{i}" not in self.tabNames:
                 return i
-        #else: return len(self.tabNames)-2
+        # else: return len(self.tabNames)-2
+
 
 class ConsoleView:
     def __init__(self, parent):
@@ -136,41 +178,46 @@ class ConsoleView:
 
         Args:
             parent (MainWindow): Passes the MainWindow parent
-        """        
+        """
         self.parent = parent
         self.frame = tk.Frame(self.parent.rightPane)
         """self.consoleObject = st.ScrolledText(self.frame, wrap="none", height=10)
         self.consoleObject.pack(fill=BOTH, expand=True)
         self.consoleObject.insert("1.0", ">>> ")"""
-        #self.consoleObject.config(state="disabled")
-        
+        # self.consoleObject.config(state="disabled")
+
         self.entry = tk.Entry(self.frame)
         self.entry.pack(side=tk.BOTTOM, fill=tk.X)
-        self.entry.bind('<Return>', self.inp)
-        
+        self.entry.bind("<Return>", self.inp)
+
         self.entry.insert(tk.END, ">>> ")
-        self.entry.config(validate='key', validatecommand=(self.frame.register(lambda t: t.startswith(">>> ")), '%P'))
-        
-        self.consoleObject = st.ScrolledText(self.frame, height=10, borderwidth=0, state="disabled")
+        self.entry.config(
+            validate="key",
+            validatecommand=(self.frame.register(lambda t: t.startswith(">>> ")), "%P"),
+        )
+
+        self.consoleObject = st.ScrolledText(
+            self.frame, height=10, borderwidth=0, state="disabled"
+        )
         self.consoleObject.pack(side=tk.BOTTOM, fill=tk.X)
-    
+
     def out(self, *s, sep=" ", end="\n") -> str:
         """Writes text to the console field
-        
+
         Args:
             sep (str, optional): String inserted bewteen values. Defaults to space.
             end (str, optional): String appended after the last value. Defaults to newline.
-        
+
         Returns:
             str: The written text in the output format.
         """
-        output = sep.join([str(i) for i in s])+end
+        output = sep.join([str(i) for i in s]) + end
         self.consoleObject.config(state="normal")
         self.consoleObject.insert("end", output)
         self.consoleObject.see(END)
         self.consoleObject.config(state="disabled")
         return output
-    
+
     def inp(self, event, prompt=""):
         """Handles input from self.entry.
 
@@ -179,7 +226,7 @@ class ConsoleView:
             prompt (str, optional): If specified is written into the console without trailing characters. Defaults to empty string.
         """
         output = self.consoleObject
-        output['height'] += 1
+        output["height"] += 1
         data = self.entry.get()[4:]
         self.out(data)
         """
@@ -190,6 +237,7 @@ class ConsoleView:
             elif tokenized_line != "-99": tokenized_code.append(tokenized_line)
         self.out(tokenized_line, tokenized_code)"""
 
+
 class WindowMenu:
     def __init__(self, parent):
         """Initializes WindowMenu window component that that handles all menu and preferences actions
@@ -199,14 +247,14 @@ class WindowMenu:
         """
         self.parent = parent
         self.menuObject = tk.Menu(self.parent.root)
-        
+
         self.fileMenu = tk.Menu(self.menuObject, tearoff=0)
         self.fileMenu.add_command(label="Open", command=self.parent.changeDir)
         self.fileMenu.add_command(label="Save", command=self.save)
         self.fileMenu.add_command(label="Save As", command=self.saveAs)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Exit", command=self.parent.root.quit)
-        
+
         self.editMenu = tk.Menu(self.menuObject, tearoff=0)
         self.editMenu.add_command(label="Undo", command=self.undo)
         self.editMenu.add_command(label="Redo", command=self.redo)
@@ -217,46 +265,61 @@ class WindowMenu:
         self.editMenu.add_command(label="Delete", command=self.delete)
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Select All", command=self.selectAll)
-        
+
         self.viewMenu = tk.Menu(self.menuObject, tearoff=0)
         self.viewMenu.add_command(label="Hide Console", command=self.toggleConsole)
-        self.viewMenu.add_command(label="Open Preferences", command=self.openPreferences)
-        
+        self.viewMenu.add_command(
+            label="Open Preferences", command=self.openPreferences
+        )
+
         self.menuObject.add_cascade(label="File", menu=self.fileMenu)
         self.menuObject.add_cascade(label="Edit", menu=self.editMenu)
         self.menuObject.add_cascade(label="View", menu=self.viewMenu)
-    
+
     def save(self):
         file = open(f"{self.parent.directory}/{self.parent.code.currentTabName}", "w+")
         file.write(self.parent.code.currentTab.get("1.0", "end")[:-1])
+
     def saveAs(self):
         file = fd.asksaveasfile()
         file.write(self.parent.code.currentTab.get("1.0", "end")[:-1])
-    
+
     def undo(self):
         self.parent.code.currentTab.edit_undo()
+
     def redo(self):
         self.parent.code.currentTab.edit_redo()
-    
+
     def cut(self):
         if self.parent.code.currentTab.tag_ranges("sel"):
             self.parent.code.currentTab.clipboard_clear()
-            self.parent.code.currentTab.clipboard_append(self.parent.code.currentTab.get("sel.first", "sel.last")[:-1])
+            self.parent.code.currentTab.clipboard_append(
+                self.parent.code.currentTab.get("sel.first", "sel.last")[:-1]
+            )
             self.parent.code.currentTab.delete("sel.first", "sel.last")
+
     def copy(self):
         if self.parent.code.currentTab.tag_ranges("sel"):
             self.parent.code.currentTab.clipboard_clear()
-            self.parent.code.currentTab.clipboard_append(self.parent.code.currentTab.get("sel.first", "sel.last")[:-1])
+            self.parent.code.currentTab.clipboard_append(
+                self.parent.code.currentTab.get("sel.first", "sel.last")[:-1]
+            )
+
     def paste(self):
         cursorPos = self.parent.code.currentTab.index("insert")
-        self.parent.code.currentTab.insert(cursorPos, self.parent.code.currentTab.clipboard_get())
+        self.parent.code.currentTab.insert(
+            cursorPos, self.parent.code.currentTab.clipboard_get()
+        )
+
     def delete(self):
-        if self.parent.code.currentTab.tag_ranges("sel"): self.parent.code.currentTab.delete("sel.first", "sel.last")
-        else: self.parent.code.currentTab.delete("1.0","end")
-    
+        if self.parent.code.currentTab.tag_ranges("sel"):
+            self.parent.code.currentTab.delete("sel.first", "sel.last")
+        else:
+            self.parent.code.currentTab.delete("1.0", "end")
+
     def selectAll(self):
         self.parent.code.currentTab.tag_add("sel", "1.0", "end")
-    
+
     def toggleConsole(self):
         if len(self.parent.rightPane.panes()) > 1:
             self.parent.rightPane.remove(self.parent.console.frame)
@@ -269,23 +332,28 @@ class WindowMenu:
         """
         Open the preferences window.
         """
-        PreferenceWindow(self.parent)
-    
+        self.parent.preferences.windowDraw()
 
-class PreferenceWindow:
+class Preferences:
     def __init__(self, parent):
         self.parent = parent
-        self.toplevel = tk.Toplevel(parent.root)
-        toplevel = self.toplevel
-        toplevel.attributes("-topmost", "true")
+        self.config = cp.ConfigParser()
 
-        self.colors = {"wbg":"red", "wfg":"green", "tbg":None, "tfg":None}
         self.style = ttk.Style()
         self.style.theme_use("clam")
-        self.style.configure("WBG.TButton", background=self.colors["wbg"])
-        self.style.map("WBG.TButton", background=[(ACTIVE, self.colors["wbg"])])
-        self.style.configure("WFG.TButton", background=self.colors["wfg"])
-        self.style.map("WFG.TButton", background=[(ACTIVE, self.colors["wfg"])])
+
+        if os.path.exists("config.ini"):
+            self.load()
+        else:
+            self.colors = {"wbg": "red", "wfg": "green", "tbg": "blue", "tfg": "yellow"}
+            for element in self.colors.keys():
+                self.style.configure(element.upper()+".TButton", background=self.colors[element])
+                self.style.map(element.upper()+".TButton", background=[(ACTIVE, self.colors[element])])
+        
+    def windowDraw(self):
+        self.toplevel = tk.Toplevel(self.parent.root)
+        toplevel = self.toplevel
+        toplevel.attributes("-topmost", "true")
 
         wbgl = tk.Label(toplevel, text="Window Background Color")
         wfgl = tk.Label(toplevel, text="Window Foreground Color")
@@ -301,18 +369,46 @@ class PreferenceWindow:
 
         tbgl = tk.Label(toplevel, text="Text Background Color")
         tfgl = tk.Label(toplevel, text="Text Foreground Color")
+        tbgc = ttk.Button(toplevel, style="TBG.TButton", command=lambda: self.color("tbg"))
+        tfgc = ttk.Button(toplevel, style="TFG.TButton", command=lambda: self.color("tfg"))
         tbgl.grid(row=3, column=0)
         tfgl.grid(row=4, column=0)
+        tbgc.grid(row=3, column=1)
+        tfgc.grid(row=4, column=1)
+
+        save = tk.Button(toplevel, text="Save", command=self.save)
+        save.grid(row=6, column=0)
+
+        cancel = tk.Button(toplevel, text="Cancel", command=self.toplevel.destroy)
+        cancel.grid(row=6,column=1)
 
     def color(self, e):
-        self.colors[e] = cc.askcolor(initialcolor=self.colors[e], parent=self.toplevel)[1] # 1 for hex output, 0 for (r, g, b)
-        self.style.configure(e.upper()+".TButton", background=self.colors[e])
-        self.style.map(e.upper()+".TButton", background=[(ACTIVE, self.colors[e])])
+        self.colors[e] = cc.askcolor(initialcolor=self.colors[e], parent=self.toplevel)[1]  # 1 for hex output, 0 for (r, g, b)
+        self.style.configure(e.upper() + ".TButton", background=self.colors[e])
+        self.style.map(e.upper() + ".TButton", background=[(ACTIVE, self.colors[e])])
         self.toplevel.update_idletasks()
+        print(self.colors)
+
+    def save(self):
+        self.config["DEFAULT"] = self.colors
+
+        with open("config.ini", "w") as configfile:
+            self.config.write(configfile)
+
+        self.parent.style = self.style
+
+    def load(self):
+        self.config.read("config.ini")
+        self.colors = self.config["DEFAULT"]
+        for element in self.colors.keys():
+            self.style.configure(element.upper()+".TButton", background=self.colors[element])
+            self.style.map(element.upper()+".TButton", background=[(ACTIVE, self.colors[element])])
 
 class MainWindow:
-    def __init__(self, directory=None, title="VISUAL_NUMERICS.PY", width=800, height=600):
-        self.nsvm = NumScriptVirtualMachine()
+    def __init__(
+        self, directory=None, title="VISUAL_NUMERICS.PY", width=800, height=600
+    ):
+        # self.nsvm = NumScriptVirtualMachine()
 
         self.root = tk.Tk()
         self.directory = directory
@@ -320,34 +416,43 @@ class MainWindow:
         self.height = height
         self.root.title(title)
         self.root.geometry(f"{self.width}x{self.height}")
-        
+
         self.content = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
         self.content.pack(fill=BOTH, expand=True)
-        
+
         self.rightPanel = tk.Frame(self.root)
         self.rightPane = ttk.PanedWindow(self.rightPanel, orient=tk.VERTICAL)
         self.rightPane.pack(fill=BOTH, expand=True)
-        
+
         self.code = CodeView(self)
         self.tree = FileTreeView(self)
         self.console = ConsoleView(self)
-        
+        self.preferences = Preferences(self)
+
         pixel = tk.PhotoImage(width=1, height=1)
-        self.runButton = tk.Button(self.code.codeObject, text="▶", image=pixel, width=20, height=20, compound="c", command=self.run)
-        self.runButton.pack(anchor=NE, padx=20, pady=23)
-        
+        self.runButton = tk.Button(
+            self.code.codeObject,
+            text="d▶",
+            image=pixel,
+            width=20,
+            height=20,
+            compound="c",
+            command=self.run,
+        )
+        self.runButton.pack(anchor=NE, padx=20, pady=30)
+
         self.rightPane.add(self.code.codeObject, weight=1)
         self.rightPane.add(self.console.frame)
-        
+
         self.content.add(self.tree.treeObject)
         self.content.add(self.rightPanel, weight=1)
-    
+
         self.menu = WindowMenu(self)
         self.root.config(menu=self.menu.menuObject)
-        self.root.bind("<Control-o>", self.changeDir)                   
+        self.root.bind("<Control-o>", self.changeDir)
 
-        #self.changeDir()
-        
+        # self.changeDir()
+
         """self.console.out("\n",
         "  _   _                 ____            _       _   \n",
         " | \\ | |_   _ _ __ ___ / ___|  ___ _ __(_)_ __ | |_ \n",
@@ -357,13 +462,17 @@ class MainWindow:
         "                                         |_|        "
         )"""
         self.root.mainloop()
-    
+
     def run(self):
         """
         Runs the current python code in CodeView using exec().
         """
-        exec(self.code.currentTab.get("1.0","end")[:-1].replace("print", "self.console.out").replace("input", "self.console.inp"))
-    
+        exec(
+            self.code.currentTab.get("1.0", "end")[:-1]
+            .replace("print", "self.console.out")
+            .replace("input", "self.console.inp")
+        )
+
     def changeDir(self, event=None, directory=None):
         """Changes the current working directory and refreshes FileTreeView.
 
@@ -371,13 +480,17 @@ class MainWindow:
             event (tkinter.Event, optional): Event that called the function. Defaults to None.
             directory (str, optional): New working directory, if none, prompts the user with folder selection dialog. Defaults to None.
         """
-        directory = fd.askdirectory(title="Select Directory") if not directory else self.directory
+        directory = (
+            fd.askdirectory(title="Select Directory")
+            if not directory
+            else self.directory
+        )
         self.directory = directory if directory != "" else self.directory
         self.tree.treeObject.delete(*self.tree.treeObject.get_children())
         self.tree.listDir()
 
 
-MainWindow("/Users/benzo/Documents/VisualNumerics/")
+MainWindow("/home/benzo/VisualNumerics/")
 
 """
 if len(sys.argv) > 1: #File input from system arguments
